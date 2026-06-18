@@ -1,0 +1,13 @@
+{
+  "itemGroup.lunarinispuzzlekit": "Example Mod Tab",
+  "block.lunarinispuzzlekit.example_block": "Example Block",
+  "item.lunarinispuzzlekit.example_item": "Example Item",
+
+  "lunarinispuzzlekit.configuration.title": "Lunarini’s Puzzle Kit Configs",
+  "lunarinispuzzlekit.configuration.section.lunarinispuzzlekit.common.toml": "Lunarini’s Puzzle Kit Configs",
+  "lunarinispuzzlekit.configuration.section.lunarinispuzzlekit.common.toml.title": "Lunarini’s Puzzle Kit Configs",
+  "lunarinispuzzlekit.configuration.items": "Item List",
+  "lunarinispuzzlekit.configuration.logDirtBlock": "Log Dirt Block",
+  "lunarinispuzzlekit.configuration.magicNumberIntroduction": "Magic Number Text",
+  "lunarinispuzzlekit.configuration.magicNumber": "Magic Number"
+}
