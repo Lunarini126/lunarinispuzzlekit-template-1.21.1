@@ -1,5 +1,6 @@
 package com.lunarini.puzzlekit.gui.uiElement;
 
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -74,52 +75,8 @@ public class GridBag extends UIElement {
         );
         style(style -> style.background(Sprites.BORDER));
 
-        //打开UI时读取玩家身上的物品
+
         var inventory = player.getInventory();
-
-        for (int a = 0; a < inventory.getContainerSize(); a++) {
-            ItemStack stack = inventory.getItem(a);
-            int col = 0;
-            int row = 0;
-            if (!stack.isEmpty()) {
-                CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-                if (customData != null) {
-                    CompoundTag nbt = customData.copyTag();
-                    col = nbt.getInt("column");
-                    row = nbt.getInt("row");
-                }
-
-                //如果是0，说明该物品不属于本背包系统添加
-                if (col == 0) continue;
-
-                //在UI中添加对应物品
-                ItemStack uiItemStack = stack.copy();
-                var gridItem = new GridItem(dragSession,uiItemStack);
-                gridItem.itemStackCopy = stack;
-                int finalCol = col;
-                int finalRow = row;
-                gridItem.layout(layout -> layout
-                        .gridColumn("" + (finalCol))
-                        .gridRow("" + (finalRow))
-                );
-                //设置新占用
-                gridItem.slotRow = finalRow;
-                gridItem.slotColumn = finalCol;
-                bagGrids[finalCol-1][finalRow-1] = gridItem;
-
-                float finalSlotWidth = slotWidth;
-                float finalSlotHeight = slotHeight;
-
-                float w = dragSession.itemWidth;
-                float h = dragSession.itemHeight;
-                float offsetX = -(w - finalSlotWidth) / 2f;
-                float offsetY = -(h - finalSlotHeight) / 2f;
-                gridItem.transform(transform -> transform.translate(offsetX, offsetY));
-                gridItem.getLayout().width(w).height(h);
-
-                addChild(gridItem);
-            }
-        }
 
         //添加格子
         for (int k = 0; k < row; k++) {
@@ -140,8 +97,6 @@ public class GridBag extends UIElement {
                                 SpriteTexture.of(path))
                         .zIndex(GridZIndex)
                 );
-
-
 
                 //在元素上结束拖拽时
                 float finalSlotWidth = slotWidth;
@@ -179,20 +134,42 @@ public class GridBag extends UIElement {
 
                         //为玩家添加物品
 
-                        if (gridItem.itemStackCopy == null){
+
+
+                        CompoundTag nbt = null;
+                        if (gridItem.itemStackCopy != null){
+                            CustomData customData = gridItem.itemStackCopy.get(DataComponents.CUSTOM_DATA);
+                            if (customData != null) {
+                                nbt = customData.copyTag();
+                            }
+                        }
+
+
+                        if (nbt == null || !nbt.contains("slotNumber")){
                             // 遍历主背包，在第一个空位添加复制物品给玩家
                             gridItem.itemStackCopy = gridItem.itemStack.copy();
-                            CompoundTag nbt = new CompoundTag();
-                            nbt.putInt("column",finalCol);
-                            nbt.putInt("row",finalRow);
-                            gridItem.itemStackCopy.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                            nbt = new CompoundTag();
+
                             for (int a = 0; a < inventory.getContainerSize(); a++) {
                                 ItemStack stack = inventory.getItem(a);
                                 if (stack.isEmpty()) {
-                                    inventory.add(a, gridItem.itemStackCopy);
+                                    gridItem.slotNumber = a;
+                                    nbt.putInt("column",finalCol);
+                                    nbt.putInt("row",finalRow);
+                                    nbt.putInt("slotNumber",a);
+                                    gridItem.itemStackCopy.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                                    inventory.setItem(a, gridItem.itemStackCopy);
                                     break;
                                 }
                             }
+                        }else {
+                            var slotNumber = nbt.getInt("slotNumber");
+                            nbt = new CompoundTag();
+                            nbt.putInt("column",finalCol);
+                            nbt.putInt("row",finalRow);
+                            nbt.putInt("slotNumber", slotNumber);
+                            gridItem.itemStackCopy.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                            inventory.setItem(slotNumber, gridItem.itemStackCopy);
                         }
                     }
 
@@ -211,6 +188,51 @@ public class GridBag extends UIElement {
                 });
                 // 添加到网格中（自动按顺序填充）
                 addChild(slot);
+            }
+        }
+        //打开UI时读取玩家身上的物品
+        for (int a = 0; a < inventory.getContainerSize(); a++) {
+            ItemStack stack = inventory.getItem(a).copy();
+            int col = 0;
+            int row = 0;
+            if (!stack.isEmpty()) {
+                CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
+                if (customData != null) {
+                    CompoundTag nbt = customData.copyTag();
+                    col = nbt.getInt("column");
+                    row = nbt.getInt("row");
+                }
+
+                //如果是0，说明该物品不属于本背包系统添加
+                if (col == 0) continue;
+
+                //在UI中添加对应物品
+                ItemStack uiItemStack = stack;
+                var gridItem = new GridItem(dragSession,uiItemStack);
+                gridItem.itemStackCopy = stack;
+                int finalCol = col;
+                int finalRow = row;
+                gridItem.layout(layout -> layout
+                        .gridColumn("" + (finalCol))
+                        .gridRow("" + (finalRow))
+                );
+                //设置新占用
+                gridItem.slotRow = finalRow;
+                gridItem.slotColumn = finalCol;
+                bagGrids[finalCol-1][finalRow-1] = gridItem;
+
+                float finalSlotWidth = slotWidth;
+                float finalSlotHeight = slotHeight;
+
+                float w = dragSession.itemWidth;
+                float h = dragSession.itemHeight;
+                float offsetX = -(w - finalSlotWidth) / 2f;
+                float offsetY = -(h - finalSlotHeight) / 2f;
+                gridItem.transform(transform -> transform.translate(offsetX, offsetY));
+                gridItem.getLayout().width(w).height(h);
+
+                addChild(gridItem);
+                gridItem.style(style -> style.background(new ItemStackTexture(uiItemStack)));
             }
         }
     }

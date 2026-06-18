@@ -14,6 +14,7 @@ public class GridItem extends UIElement {
     float width;
     float height;
     int zIndex = 200;
+    int slotNumber = -1;
     String id = "GridItem";
     Minecraft mc = Minecraft.getInstance();
     public ItemStack itemStack;
