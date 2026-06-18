@@ -38,7 +38,7 @@ public class learn {
                 )
                 .style(style -> style.background(Sprites.BORDER)
         );
-        var gird = new GridBag("lunarinispuzzlekit:textures/grid.png");
+        var gird = new GridBag("lunarinispuzzlekit:textures/grid.png",dragSession);
 
         root.addChildren(gird);
         var fillSlot = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.DIAMOND)));
