@@ -1,8 +1,10 @@
 package com.lunarini.puzzlekit.learn;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lunarini.puzzlekit.blockEntity.TestBlockEntity;
 import com.lunarini.puzzlekit.gui.session.DragSession;
@@ -13,15 +15,17 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 public class learn {
-    public record DragPayload(UIElement element, int width, int height) {}
 
-    public static ModularUI createModularUI(TestBlockEntity be) {
+    public static ModularUI createModularUI(TestBlockEntity be, Player player) {
         //字段
         var dragSession = new DragSession();
+        dragSession.player = player;
+
 
         var root = new UIElement();
         root.layout(layout -> layout
@@ -34,17 +38,26 @@ public class learn {
                 )
                 .style(style -> style.background(Sprites.BORDER)
         );
+        var gird = new GridBag("lunarinispuzzlekit:textures/grid.png");
 
-        root.addChildren(new GridBag("lunarinispuzzlekit:textures/grid.png"));
+        root.addChildren(gird);
         var fillSlot = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.DIAMOND)));
-//        var fillSlot1 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.GOLD_BLOCK)));
-//        var fillSlot2 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.ACACIA_DOOR)));
+        var fillSlot1 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.GOLD_BLOCK)));
+        var fillSlot2 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.ACACIA_DOOR)));
         root.addChildren(fillSlot);
-//        root.addChildren(fillSlot1);
-//        root.addChildren(fillSlot2);
+        root.addChildren(fillSlot1);
+        root.addChildren(fillSlot2);
 
         var ui = UI.of(root);
         var modularUI = ModularUI.of(ui);
+
+        gird.addEventListener(UIEvents.MOUSE_DOWN,e -> {
+            if (e.button != 1) return;
+            var gridItemList = modularUI.getElementsByType(GridItem.class);
+            for (GridItem item : gridItemList){
+                LDLib2.LOGGER.info("名称："+ item.itemStack.getDisplayName().getString() + "列：" + item.slotColumn + "行" + item.slotRow);
+            }
+        });
         return modularUI;
 
 

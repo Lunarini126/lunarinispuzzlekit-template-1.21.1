@@ -43,7 +43,7 @@ public class TestBlock extends Block implements EntityBlock,BlockUIMenuType.Bloc
         Level level = holder.player.level();
         BlockPos pos = holder.pos;
         if(level != null && level.getBlockEntity(pos) instanceof TestBlockEntity be){
-            return learn.createModularUI(be);
+            return learn.createModularUI(be,holder.player);
         }
 
         return null;

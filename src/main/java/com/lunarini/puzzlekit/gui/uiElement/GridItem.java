@@ -16,8 +16,11 @@ public class GridItem extends UIElement {
     int zIndex = 200;
     String id = "GridItem";
     Minecraft mc = Minecraft.getInstance();
-    ItemStack itemStack;
+    public ItemStack itemStack;
+    public ItemStack itemStackCopy;
     ItemStackTexture itemStackTexture;
+    public int slotRow;
+    public int slotColumn;
 
     public GridItem(DragSession dragSession, ItemStack item){
         //基础操作

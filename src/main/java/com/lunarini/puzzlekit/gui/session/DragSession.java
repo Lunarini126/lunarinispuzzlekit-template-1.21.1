@@ -1,6 +1,7 @@
 package com.lunarini.puzzlekit.gui.session;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import net.minecraft.world.entity.player.Player;
 
 public class DragSession {
     public boolean success = false;
@@ -10,4 +11,5 @@ public class DragSession {
     public float itemHeight;
     public UIElement currentSourceSlot;
     public int[][] grids;
+    public Player player;
 }
