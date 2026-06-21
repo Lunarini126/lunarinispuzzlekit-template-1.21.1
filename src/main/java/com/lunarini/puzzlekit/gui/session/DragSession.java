@@ -1,6 +1,7 @@
 package com.lunarini.puzzlekit.gui.session;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lunarini.puzzlekit.gui.uiElement.GridBag;
 import net.minecraft.world.entity.player.Player;
 
 public class DragSession {
@@ -12,4 +13,5 @@ public class DragSession {
     public UIElement currentSourceSlot;
     public int[][] grids;
     public Player player;
+    public GridBag gridBag;
 }

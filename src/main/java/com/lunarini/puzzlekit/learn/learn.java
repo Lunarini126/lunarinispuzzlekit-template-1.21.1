@@ -15,9 +15,15 @@ import dev.vfyjxf.taffy.style.AlignContent;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 
 public class learn {
 
@@ -41,9 +47,33 @@ public class learn {
         var gird = new GridBag("lunarinispuzzlekit:textures/grid.png",dragSession);
 
         root.addChildren(gird);
-        var fillSlot = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.DIAMOND)));
+
+        // 基础物品
+        Item gunItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse("tacz:modern_kinetic_gun"));
+        ItemStack gunStack = new ItemStack(gunItem);
+
+// 设置 GunId NBT（关键！）
+        CompoundTag nbt = new CompoundTag();
+        nbt.putString("GunId", "tacz:ak47");  // 枪械型号，格式：命名空间:枪名
+
+// 可选：设置射击模式
+        nbt.putString("GunFireMode", "AUTO");  // AUTO / SEMI / BURST
+
+// 可选：设置配件
+        CompoundTag attachmentTag = new CompoundTag();
+        attachmentTag.putString("muzzle", "tacz:silencer");  // 枪口
+        attachmentTag.putString("scope", "tacz:scope_4x");   // 瞄准镜
+        nbt.put("Attachment", attachmentTag);
+
+// 可选：设置当前弹药数
+        nbt.putInt("CurrentAmmoCount", 30);
+
+// 写入物品栈
+        gunStack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+
+        var fillSlot = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,gunStack));
         var fillSlot1 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.GOLD_BLOCK)));
-        var fillSlot2 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.ACACIA_DOOR)));
+        var fillSlot2 = new FillSlot("lunarinispuzzlekit:textures/grid.png",dragSession,new GridItem(dragSession,new ItemStack(Items.APPLE)));
         root.addChildren(fillSlot);
         root.addChildren(fillSlot1);
         root.addChildren(fillSlot2);
