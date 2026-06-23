@@ -1,6 +1,10 @@
 package com.lunarini.puzzlekit.init;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacket;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketDistributor;
+import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lunarini.puzzlekit.gui.session.DragSession;
 import com.lunarini.puzzlekit.gui.uiElement.FillSlot;
 import com.lunarini.puzzlekit.gui.uiElement.GridBag;
@@ -16,9 +20,15 @@ import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyDisplay;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -33,6 +43,12 @@ public class ModKeys {
             "key.lunarinispuzzlekit.open_puzzle_ui",  // 翻译键
             GLFW.GLFW_KEY_B,                           // 默认按键：B
             "key.categories.lunarinispuzzlekit"        // 分类
+    );
+
+    public static final KeyMapping TEST_GIVE_DIRT = new KeyMapping(
+            "key.lunarinispuzzlekit.test_give_dirt",
+            GLFW.GLFW_KEY_N,  // 按 N 键测试
+            "key.categories.lunarinispuzzlekit"
     );
 
     @SubscribeEvent
@@ -55,6 +71,19 @@ public class ModKeys {
             // 创建并打开 UI
             var modularUI = learn.createModularUI(null,mc.player);
             mc.setScreen(new ModularUIScreen(modularUI, Component.empty()));
+        }
+
+        if (TEST_GIVE_DIRT.consumeClick()) {
+            RPCPacketDistributor.rpcToServer("give_dirt","啊啊啊");
+        }
+    }
+
+    @RPCPacket("give_dirt")
+    public static void giveDirt(RPCSender sender, String message){
+
+        if (sender.asPlayer() instanceof ServerPlayer player) {
+            player.getInventory().add(new ItemStack(Items.DIRT));
+            LDLib2.LOGGER.info("[SERVER] 给 " + player.getName().getString() + " 添加了泥土！" + message);
         }
     }
 }

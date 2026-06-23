@@ -1,5 +1,6 @@
 package com.lunarini.puzzlekit;
 
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lunarini.puzzlekit.init.ModBlockEntities;
 import com.lunarini.puzzlekit.init.ModBlocks;
 import com.lunarini.puzzlekit.init.ModItems;

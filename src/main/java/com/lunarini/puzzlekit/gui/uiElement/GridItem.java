@@ -12,6 +12,7 @@ import com.lunarini.puzzlekit.gui.session.DragSession;
 import dev.vfyjxf.taffy.style.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.checkerframework.checker.guieffect.qual.UI;
 
@@ -22,7 +23,7 @@ public class GridItem extends UIElement {
     float width;
     float height;
     int zIndex = 200;
-    int slotNumber = -1;
+    public int slotNumber = -1;
     String id = "GridItem";
     Minecraft mc = Minecraft.getInstance();
     public ItemStack itemStack;
@@ -85,12 +86,30 @@ public class GridItem extends UIElement {
             dragTexture.scale(ItemScaleConfig.getInstance().get(itemStack).width()/2,ItemScaleConfig.getInstance().get(itemStack).height()/2);
             startDrag(dragSession,dragTexture);
             dragSession.currentSourceSlot = getParent();
+            //撤销老占用
+            var itemWidth = ItemScaleConfig.getInstance().get(itemStack).width();
+            var itemHeight = ItemScaleConfig.getInstance().get(itemStack).height();
+
+            var test = getParent();
+
+            if (getParent() instanceof GridBag parent) {
+                for (int a = 0; a < itemWidth; a++){
+                    for (int b = 0; b < itemHeight; b++){
+                        if (slotColumn - 1 >= 0 && slotRow - 1 >= 0) {
+                            parent.bagGrids[slotColumn - 1 + a][slotRow - 1 + b] = null;
+                        }
+                    }
+                }
+            }
             if (getParent() != null) getParent().removeChild(this);
         });
 
         //设置拖拽结束事件
         addEventListener(UIEvents.DRAG_END,event -> {
             ModularUI modularUI = this.getModularUI();
+            if (modularUI != null) {
+                Player player = modularUI.player;
+            }
 
             // 获取拖拽结束时的鼠标位置
             float mouseX = event.x;
@@ -110,6 +129,24 @@ public class GridItem extends UIElement {
             mc.execute(()->{
                 if (!dragSession.success){
                     dragSession.currentSourceSlot.addChildren(event.dragHandler.dragSource);
+                    //恢复占用
+                    if(event.dragHandler.dragSource instanceof GridItem gridItem){
+
+                        var itemWidth = ItemScaleConfig.getInstance().get(itemStack).width();
+                        var itemHeight = ItemScaleConfig.getInstance().get(itemStack).height();
+
+                        var row = gridItem.slotRow;
+                        var col = gridItem.slotColumn;
+                        for (int a = 0; a < itemWidth; a++){
+                            for (int b = 0; b < itemHeight; b++){
+                                if (gridItem.slotColumn - 1 >= 0 && gridItem.slotRow - 1 >= 0) {
+                                    if (getParent() instanceof GridBag gridBag)
+                                        gridBag.bagGrids[col - 1 + a][row - 1 + b] = gridItem;
+                                }
+                            }
+                        }
+                    }
+
                 }
             });
         });

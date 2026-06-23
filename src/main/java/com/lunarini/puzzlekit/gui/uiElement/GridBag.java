@@ -1,11 +1,12 @@
 package com.lunarini.puzzlekit.gui.uiElement;
 
-import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacket;
+import com.lowdragmc.lowdraglib2.networking.rpc.RPCPacketDistributor;
+import com.lowdragmc.lowdraglib2.syncdata.rpc.RPCSender;
 import com.lunarini.puzzlekit.Config;
 import com.lunarini.puzzlekit.gui.ItemScaleConfig;
 import com.lunarini.puzzlekit.gui.session.DragSession;
@@ -31,8 +32,8 @@ public class GridBag extends UIElement {
     float slotWidth = Config.GRID_SLOT_WIDTH.get().floatValue();
     float slotHeight = Config.GRID_SLOT_WIDTH.get().floatValue();
     int GridZIndex = 1;
-    int row = 5;
-    int column = 5;
+    int bagRow = 5;
+    int bagCol = 5;
     //其他逻辑字段
     Player player;
     // 存储所有 slot 引用
@@ -42,14 +43,14 @@ public class GridBag extends UIElement {
         //数据初始化
         player = dragSession.player;
         var inventory = player.getInventory();
-        bagGrids = new GridItem[column][row];
+        bagGrids = new GridItem[bagCol][bagRow];
         slotWidth = Config.GRID_SLOT_WIDTH.get().floatValue();
         slotHeight = Config.GRID_SLOT_HEIGHT.get().floatValue();
-        slotRefs = new UIElement[column][row];
+        slotRefs = new UIElement[bagCol][bagRow];
 
         //依据格子大小，计算界面大小
-        width = (slotWidth * column) * rate;
-        height = (slotHeight * row) * rate;
+        width = (slotWidth * bagCol) * rate;
+        height = (slotHeight * bagRow) * rate;
 
         //界面基础设置
         float finalGridWidth = slotWidth;
@@ -58,16 +59,16 @@ public class GridBag extends UIElement {
                 .width(width)
                 .height(height)
                 .display(TaffyDisplay.GRID)
-                .gridTemplateColumns("repeat(" + column + ", " + finalGridWidth + "px)")
-                .gridTemplateRows("repeat(" + row + ", " + finalGridHeight + "px)")
+                .gridTemplateColumns("repeat(" + bagCol + ", " + finalGridWidth + "px)")
+                .gridTemplateRows("repeat(" + bagRow + ", " + finalGridHeight + "px)")
                 .justifyContent(AlignContent.CENTER)   // 主轴居中 → 垂直居中
                 .alignContent(AlignContent.CENTER)
         );
         style(style -> style.background(Sprites.BORDER));
 
         //添加格子
-        for (int k = 0; k < row; k++) {
-            for (int i = 0; i < column; i++) {
+        for (int k = 0; k < bagRow; k++) {
+            for (int i = 0; i < bagCol; i++) {
 
                 //创建格子并设置基础信息
                 UIElement slot = createSlot(k,i,path);
@@ -116,9 +117,7 @@ public class GridBag extends UIElement {
                         .gridRow("" + (finalRow))
                 );
                 //设置新占用
-                gridItem.slotRow = finalRow;
-                gridItem.slotColumn = finalCol;
-                bagGrids[finalCol-1][finalRow-1] = gridItem;
+                addItemOccupancy(col, row, gridItem);
 
                 float w = dragSession.itemWidth;
                 float h = dragSession.itemHeight;
@@ -132,33 +131,56 @@ public class GridBag extends UIElement {
         }
     }
 
+    public void addItemOccupancy(int col, int row, GridItem gridItem) {
+        var itemWidth = ItemScaleConfig.getInstance().get(gridItem.itemStack).width();
+        var itemHeight = ItemScaleConfig.getInstance().get(gridItem.itemStack).height();
+        gridItem.slotRow = row;
+        gridItem.slotColumn = col;
+        for (int i = 0; i < itemWidth; i++){
+            for (int k = 0; k < itemHeight; k++){
+                if (gridItem.slotColumn - 1 >= 0 && gridItem.slotRow - 1 >= 0) {
+                    bagGrids[col - 1 + i][row - 1 + k] = gridItem;
+                }
+            }
+        }
+    }
+
     ///物品移动
     private void moveItem(int col, int row, UIEvent e, Inventory inventory){
+        GridItem gridItem = null;
+        if (e.dragHandler.dragSource instanceof GridItem a){
+            gridItem = a;
+        }
+        if(gridItem == null) return;
+
+        var itemWidth = ItemScaleConfig.getInstance().get(gridItem.itemStack).width();
+        var itemHeight = ItemScaleConfig.getInstance().get(gridItem.itemStack).height();
+
         //如果该格已经被占有，则返回
-        if (bagGrids[col-1][row-1] != null) return;
+        if (!hasEnoughSpace(col,row,gridItem.itemStack)) return;
 
         var source = e.dragHandler.dragSource;
-//        var target = e.target;
         if (source == null) return;
-//        if (source == target) return;
 
         addChildren(source);
 
         //设置网格相关属性
-        if (source instanceof GridItem gridItem) {
+
             //撤销老占用
             if (gridItem.getParent() instanceof GridBag parent) {
-                if (gridItem.slotColumn - 1 >= 0 && gridItem.slotRow - 1 >= 0) {
-                    parent.bagGrids[gridItem.slotColumn - 1][gridItem.slotRow - 1] = null;
+                for (int a = 0; a < itemWidth; a++){
+                    for (int b = 0; b < itemHeight; b++){
+                        if (gridItem.slotColumn - 1 >= 0 && gridItem.slotRow - 1 >= 0) {
+                            parent.bagGrids[gridItem.slotColumn - 1 + a][gridItem.slotRow - 1 + b] = null;
+                        }
+                    }
                 }
             }
 
             //设置新占用
-            gridItem.slotRow = row;
-            gridItem.slotColumn = col;
-            bagGrids[col - 1][row - 1] = gridItem;
+             addItemOccupancy(col, row, gridItem);
 
-            //设置显示时的网格位置
+        //设置显示时的网格位置
             gridItem.layout(layout -> layout
                     .gridColumn("" + (col))
                     .gridRow("" + (row))
@@ -180,23 +202,8 @@ public class GridBag extends UIElement {
 
             //在玩家的原版背包中设置物品，若无则添加，若有则修改
             if (nbt == null || !nbt.contains("slotNumber")) {
-                // 遍历主背包，在第一个空位添加复制物品给玩家
-                gridItem.itemStackCopy = gridItem.itemStack.copy();
-                CustomData itemData = gridItem.itemStackCopy.get(DataComponents.CUSTOM_DATA);
-                nbt = itemData != null ? itemData.copyTag() : new CompoundTag();
-
-                for (int a = 0; a < inventory.getContainerSize(); a++) {
-                    ItemStack stack = inventory.getItem(a);
-                    if (stack.isEmpty()) {
-                        gridItem.slotNumber = a;
-                        nbt.putInt("column", col);
-                        nbt.putInt("row", row);
-                        nbt.putInt("slotNumber", a);
-                        gridItem.itemStackCopy.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
-                        inventory.setItem(a, gridItem.itemStackCopy);
-                        break;
-                    }
-                }
+                // 遍历原版背包，在第一个空位添加复制物品给玩家
+                addItem(col, row, gridItem, inventory);
             } else {
                 var slotNumber = nbt.getInt("slotNumber");
                 CustomData itemData = gridItem.itemStackCopy.get(DataComponents.CUSTOM_DATA);
@@ -207,9 +214,9 @@ public class GridBag extends UIElement {
                 nbt.putInt("slotNumber", slotNumber);
 
                 gridItem.itemStackCopy.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
-                inventory.setItem(slotNumber, gridItem.itemStackCopy);
+                RPCPacketDistributor.rpcToServer("set_item_from_client",slotNumber,gridItem.itemStackCopy);
             }
-        }
+
     }
 
     ///创建格子并设置基础信息
@@ -243,8 +250,8 @@ public class GridBag extends UIElement {
     ///根据鼠标位置尝试放置物品
     public void tryPlaceItemAt(GridItem item, float mouseX, float mouseY, UIEvent e) {
         Inventory inventory = player.getInventory();
-        for (int c = 0; c < column; c++) {
-            for (int r = 0; r < row; r++) {
+        for (int c = 0; c < bagCol; c++) {
+            for (int r = 0; r < bagRow; r++) {
                 // 检查是否已被占用
                 if (bagGrids[c][r] != null) continue;
 
@@ -277,4 +284,101 @@ public class GridBag extends UIElement {
             }
         }
     }
+
+    ///为玩家背包同步物品
+    @RPCPacket("set_item_from_client")
+    public static void setItemFromClient(RPCSender sender, int slotNumber, ItemStack itemStack){
+        Player player = sender.asPlayer();
+        Inventory inventory = null;
+        if (player != null) {
+            inventory = player.getInventory();
+        }
+        if (inventory != null) {
+            inventory.setItem(slotNumber,itemStack);
+        }
+    }
+
+    ///检查此处是否有足够空位放置物品
+    public boolean hasEnoughSpace(int col,int row,ItemStack itemStack){
+        boolean has = true;
+        var itemWidth = ItemScaleConfig.getInstance().get(itemStack).width();
+        var itemHeight = ItemScaleConfig.getInstance().get(itemStack).height();
+
+        //如果该格已经被占有，则返回
+        for (int a = 0; a < itemWidth; a++){
+            for (int b = 0; b < itemHeight; b++){
+                if (col - 1 >= 0 && row - 1 >= 0) {
+                    if(col - 1 + a > 4 || row - 1 + b > 4) has = false;
+                            else if (bagGrids[col - 1 + a][row - 1 + b] != null) has = false;
+                }
+            }
+        }
+        return has;
+    }
+
+    public void giveItem(DragSession dragSession,ItemStack itemStack){
+        //循环遍历，查看是否有空位
+        boolean has = false;
+        int col = -1;
+        int row = -1;
+        for (int i = 0; i < bagCol; i++) {
+            for (int j = 0; j < bagRow; j++) {
+                if(hasEnoughSpace(i,j,itemStack)){
+                    has = true;
+                    col = i;
+                    row = j;
+                    break;
+                }
+            }
+        }
+        if(!has) return;
+        //在UI中添加对应物品
+        var gridItem = new GridItem(dragSession, itemStack);
+        gridItem.itemStackCopy = itemStack.copy();
+
+        int finalRow = row;
+        int finalCol = col;
+        gridItem.layout(layout -> layout
+                .gridColumn("" + (finalCol))
+                .gridRow("" + finalRow)
+        );
+        float w = dragSession.itemWidth;
+        float h = dragSession.itemHeight;
+
+        setOffset(dragSession,gridItem);
+
+        gridItem.getLayout().width(w).height(h);
+
+        addChild(gridItem);
+        //设置新占用
+        addItemOccupancy(col, row, gridItem);
+        var inventory =dragSession.player.getInventory();
+
+        //在原版背包中添加物品
+        // 遍历原版背包，在第一个空位添加复制物品给玩家
+        addItem(col, row, gridItem, inventory);
+    }
+
+    //为原版背包第一个空位增加与UI匹配的物品
+    public void addItem(int col, int row, GridItem gridItem, Inventory inventory) {
+        CompoundTag nbt;
+        gridItem.itemStackCopy = gridItem.itemStack.copy();
+        CustomData itemData = gridItem.itemStackCopy.get(DataComponents.CUSTOM_DATA);
+        nbt = itemData != null ? itemData.copyTag() : new CompoundTag();
+
+        for (int a = 0; a < inventory.getContainerSize(); a++) {
+            ItemStack stack = inventory.getItem(a);
+            if (stack.isEmpty()) {
+                gridItem.slotNumber = a;
+                nbt.putInt("column", col);
+                nbt.putInt("row", row);
+                nbt.putInt("slotNumber", a);
+                gridItem.itemStackCopy.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+                RPCPacketDistributor.rpcToServer("set_item_from_client",a,gridItem.itemStackCopy);
+                break;
+            }
+        }
+    }
+
+
 }
